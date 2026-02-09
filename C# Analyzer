@@ -55,6 +55,52 @@ public class CsvProcessor
         return total;
     }
 
+    // C# method to identify the top-selling product by total revenue
+    public static (string ProductName, decimal Revenue) GetTopSellingProduct(string filename)
+    {
+        try
+        {
+            if (!File.Exists(filename))
+            {
+                throw new FileNotFoundException($"The file '{filename}' does not exist.");
+            }
+
+            var dataLines = File.ReadLines(filename).Skip(1);
+
+            var topProduct = dataLines
+                .Select(line => line.Split(','))
+                .Where(columns => columns.Length == 3 &&
+                    decimal.TryParse(columns[1], NumberStyles.Any, CultureInfo.InvariantCulture, out _) &&
+                    int.TryParse(columns[2], out _))
+                .Select(columns => new
+                {
+                    ProductName = columns[0],
+                    Revenue = decimal.Parse(columns[1], NumberStyles.Any, CultureInfo.InvariantCulture) * int.Parse(columns[2])
+                })
+                .OrderByDescending(product => product.Revenue)
+                .FirstOrDefault();
+
+            if (topProduct != null)
+            {
+                return (topProduct.ProductName, topProduct.Revenue);
+            }
+            else
+            {
+                return ("No valid data", 0.0m);
+            }
+        }
+        catch (FileNotFoundException ex)
+        {
+            Console.WriteLine($"FileNotFoundError: {ex.Message}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"An unexpected error occurred: {ex.Message}");
+        }
+
+        return ("Error", 0.0m);
+    }
+
     // C# Main method equivalent to Python's 'if __name__ == "__main__":' block
     public static void Main(string[] args)
     {
@@ -73,5 +119,8 @@ public class CsvProcessor
         
         // Print with currency formatting, equivalent to Python's f-string formatting
         Console.WriteLine($"Total sales from {salesDataFile}: {totalSales.ToString("C", CultureInfo.CurrentCulture)}");
+
+        var (topProduct, revenue) = GetTopSellingProduct(salesDataFile);
+        Console.WriteLine($"Top-Selling Product: {topProduct} with Revenue: {revenue:C}");
     }
 }
